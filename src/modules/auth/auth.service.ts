@@ -5,9 +5,10 @@ import { Model } from 'mongoose';
 import { RegisterDto } from './dto/register.dto';
 import * as bcrypt from 'bcrypt';
 import { LoginDto } from './dto/login.dto';
-import { User } from '../../database/schemas/user.schema';
-import { EmailService } from 'src/modules/email/email.service';
-import { isEmailOrPhone } from 'src/common/helpers/validation.util';
+import { User } from '@/database/schemas/user.schema';
+import { EmailService } from '@/modules/email/email.service';
+import { isEmailOrPhone } from '@/common/helpers/validation.util';
+import { IUserRequest } from '@/common/interfaces/user-request.interfaces';
 
 @Injectable()
 export class AuthService {
@@ -55,7 +56,11 @@ export class AuthService {
     if (!(await bcrypt.compare(passWord, user.passWord))) {
       throw new BadRequestException('Incorrect password');
     }
-    const payload = { userName: user.userName, sub: user._id };
+    const payload: IUserRequest = {
+      userName: user.userName,
+      userId: user._id,
+      iat: Math.floor(Date.now() / 1000),
+    };
     return { access_token: this.jwtService.sign(payload) };
   }
 }

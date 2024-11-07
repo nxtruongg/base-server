@@ -1,3 +1,4 @@
+import { IUserRequest } from '@/common/interfaces/user-request.interfaces';
 import {
   BadRequestException,
   Inject,
@@ -5,12 +6,14 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectModel } from '@nestjs/mongoose';
 import { FilterQuery, isValidObjectId, Model } from 'mongoose';
-import { CacheService } from 'src/cache/cache.service';
-import { ActivityLogService } from 'src/modules/systems/activityLog/activityLog.service';
-import { IUser } from './base.interface';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { CacheService } from '@/cache/cache.service';
+import { CacheKeyEnum } from '@/common/enums/cache-key.enums';
+import { CrudEventEnum } from '@/common/enums/event.enums';
+import { LogActionEnum } from '@/common/enums/log-action.enums';
+import { ActivityLogService } from '@/modules/systems/activityLog/activityLog.service';
 
 @Injectable()
 export class BaseService<T> {
@@ -32,38 +35,38 @@ export class BaseService<T> {
 
   protected async beforeCreate(
     data: Partial<T>,
-    user: IUser,
+    user: IUserRequest,
   ): Promise<Partial<T>> {
     return data;
   }
 
-  protected async afterCreate(entity: T, user: IUser): Promise<void> {}
+  protected async afterCreate(entity: T, user: IUserRequest): Promise<void> {}
 
   protected async beforeUpdate(
     id: string,
     data: Partial<T>,
-    user: IUser,
+    user: IUserRequest,
   ): Promise<Partial<T>> {
     return data;
   }
 
-  protected async afterUpdate(entity: T, user: IUser): Promise<void> {}
+  protected async afterUpdate(entity: T, user: IUserRequest): Promise<void> {}
 
-  protected async beforeRemove(entity: T, user: IUser): Promise<void> {}
+  protected async beforeRemove(entity: T, user: IUserRequest): Promise<void> {}
 
-  protected async afterRemove(entity: T, user: IUser): Promise<void> {}
+  protected async afterRemove(entity: T, user: IUserRequest): Promise<void> {}
 
-  protected async onView(data: T[], user: IUser): Promise<T[]> {
+  protected async onView(data: T[], user: IUserRequest): Promise<T[]> {
     return data;
   }
   protected async onFinding(
     condition: FilterQuery<T> = {},
-    user: IUser,
+    user: IUserRequest,
   ): Promise<FilterQuery<T>> {
     return condition;
   }
 
-  async create(data: Partial<T>, user: IUser): Promise<T> {
+  async create(data: Partial<T>, user: IUserRequest): Promise<T> {
     try {
       if (user?.userId) {
         data['createdBy'] = user.userId;
@@ -74,21 +77,26 @@ export class BaseService<T> {
       await entity.save();
 
       await this.afterCreate(entity, user);
-      await this.logActivity('create', entity._id.toString(), user, data);
-      await this.cacheService.delCache(
-        `${this.model.collection.name}-findAll-*`,
+      await this.logActivity(
+        LogActionEnum.CREATE,
+        entity._id.toString(),
+        user,
+        data,
       );
-      this.eventEmitter.emit(`${this.model.modelName}.saved`, {
+      await this.cacheService.delCache(
+        `${this.model.collection.name}-${CacheKeyEnum.FIND_ALL}-*`,
+      );
+      this.eventEmitter.emit(`${this.model.modelName}.${CrudEventEnum.SAVED}`, {
         entity,
         user,
       });
       return entity;
     } catch (error) {
-      throw new InternalServerErrorException('Error creating entity');
+      throw error;
     }
   }
 
-  async update(id: string, data: Partial<T>, user: IUser): Promise<T> {
+  async update(id: string, data: Partial<T>, user: IUserRequest): Promise<T> {
     if (!isValidObjectId(id)) {
       throw new BadRequestException('Invalid ID format');
     }
@@ -108,24 +116,24 @@ export class BaseService<T> {
       }
 
       await this.afterUpdate(entity, user);
-      await this.logActivity('update', id, user, data);
+      await this.logActivity(LogActionEnum.UPDATE, id, user, data);
       await this.cacheService.delCache(
-        `${this.model.collection.name}-findOne-${id}`,
+        `${this.model.collection.name}-${CacheKeyEnum.FIND_ONE}-${id}`,
       );
       await this.cacheService.delCache(
-        `${this.model.collection.name}-findAll-*`,
+        `${this.model.collection.name}-${CacheKeyEnum.FIND_ALL}-*`,
       );
-      this.eventEmitter.emit(`${this.model.modelName}.saved`, {
+      this.eventEmitter.emit(`${this.model.modelName}.${CrudEventEnum.SAVED}`, {
         entity,
         user,
       });
       return entity;
     } catch (error) {
-      throw new InternalServerErrorException('Error updating entity');
+      throw error;
     }
   }
 
-  async remove(id: string, user: IUser): Promise<void> {
+  async remove(id: string, user: IUserRequest): Promise<void> {
     if (!isValidObjectId(id)) {
       throw new BadRequestException('Invalid ID format');
     }
@@ -140,60 +148,62 @@ export class BaseService<T> {
       }
 
       await this.afterRemove(entity, user);
-      await this.logActivity('delete', id, user, entity);
+      await this.logActivity(LogActionEnum.DELETE, id, user, entity);
       await this.cacheService.delCache(
-        `${this.model.collection.name}-findOne-${id}`,
+        `${this.model.collection.name}-${CacheKeyEnum.FIND_ONE}-${id}`,
       );
       await this.cacheService.delCache(
-        `${this.model.collection.name}-findAll-*`,
+        `${this.model.collection.name}-${CacheKeyEnum.FIND_ALL}-*`,
       );
-      this.eventEmitter.emit(`${this.model.modelName}.deleted`, {
-        entity,
-        user,
-      });
+      this.eventEmitter.emit(
+        `${this.model.modelName}.${CrudEventEnum.DELETED}`,
+        {
+          entity,
+          user,
+        },
+      );
     } catch (error) {
-      throw new InternalServerErrorException('Error removing entity');
+      throw error;
     }
   }
 
   async findAll(
     filter: FilterQuery<T> = {},
-    page: number = 1,
-    limit: number = 10,
+    page: number,
+    limit: number,
     sort: Record<string, 1 | -1> = {},
-    user: IUser,
-  ): Promise<{ data: T[]; total: number; page: number; limit: number }> {
+    user: IUserRequest,
+  ): Promise<T[]> {
     const condition = await this.onFinding(filter, user);
-    const cacheKey = `${this.model.collection.name}-findAll-${JSON.stringify(condition)}-${page}-${limit}-${JSON.stringify(sort)}`;
+    const cacheKey = `${this.model.collection.name}-${CacheKeyEnum.FIND_ALL}-${JSON.stringify(condition)}-${page}-${limit}-${JSON.stringify(sort)}`;
     const cachedResult = await this.cacheService.getCached(cacheKey);
     if (cachedResult) return cachedResult as any;
 
     const skip = (page - 1) * limit;
 
     try {
-      const total = await this.model.countDocuments(condition).exec();
+      console.time('1');
       const data = await this.model
         .find(condition)
         .skip(skip)
         .limit(limit)
         .sort(sort)
         .exec();
+      console.timeEnd('1');
       const processedData = await this.onView(data, user);
-      const result = { data: processedData as any, total, page, limit };
-      await this.cacheService.setCached(cacheKey, result);
-      await this.logActivity('viewAll', '', user, condition);
-
-      return result;
+      await this.cacheService.setCached(cacheKey, processedData);
+      await this.logActivity(LogActionEnum.READ, '', user, condition);
+      return processedData;
     } catch (error) {
-      throw new InternalServerErrorException('Error fetching entities');
+      throw error;
     }
   }
 
-  async findOne(id: string, user: IUser): Promise<T> {
+  async findOne(id: string, user: IUserRequest): Promise<T> {
     if (!isValidObjectId(id)) {
       throw new BadRequestException('Invalid ID format');
     }
-    const cacheKey = `${this.model.collection.name}-findOne-${id}`;
+    const cacheKey = `${this.model.collection.name}-${CacheKeyEnum.FIND_ONE}-${id}`;
     const cachedEntity = await this.cacheService.getCached<T>(cacheKey);
 
     if (cachedEntity) {
@@ -206,35 +216,33 @@ export class BaseService<T> {
         throw new NotFoundException(`Entity with id ${id} not found`);
       }
       await this.cacheService.setCached(cacheKey, entity);
-      await this.logActivity('view', id, user);
+      await this.logActivity(LogActionEnum.READ, id, user);
       const data = this.onView([entity], user);
       return data[0] ? data[0] : data;
     } catch (error) {
-      throw new InternalServerErrorException('Error fetching entity');
+      throw error;
     }
   }
 
   async search(
     query: string,
-    page: number = 1,
-    limit: number = 10,
-    user: IUser,
-  ): Promise<{ data: T[]; total: number; page: number; limit: number }> {
+    page: number,
+    limit: number,
+    user: IUserRequest,
+  ): Promise<T[]> {
     try {
       const filter = { $text: { $search: query } };
       const result = await this.findAll(filter, page, limit, {}, user);
-
-      await this.logActivity('search', '', user, { query } as any);
       return result;
     } catch (error) {
-      throw new InternalServerErrorException('Error searching entities');
+      throw error;
     }
   }
 
   protected async logActivity(
-    action: string,
+    action: LogActionEnum,
     documentId: string,
-    user: IUser,
+    user: IUserRequest,
     changes?: Partial<T>,
   ): Promise<void> {
     try {
@@ -250,7 +258,7 @@ export class BaseService<T> {
     }
   }
 
-  async softRemove(id: string, user?: IUser): Promise<void> {
+  async softRemove(id: string, user: IUserRequest): Promise<void> {
     if (!isValidObjectId(id)) {
       throw new BadRequestException('Invalid ID format');
     }
@@ -259,7 +267,7 @@ export class BaseService<T> {
       const entity = await this.model
         .findByIdAndUpdate(
           id,
-          { isDeleted: true, deletedBy: user?.userId, deletedAt: new Date() },
+          { isDeleted: true, deletedBy: user.userId, deletedAt: new Date() },
           { new: true },
         )
         .exec();
@@ -268,7 +276,7 @@ export class BaseService<T> {
         throw new NotFoundException(`Entity with id ${id} not found`);
       }
 
-      await this.logActivity('softDelete', id, user);
+      await this.logActivity(LogActionEnum.SOFT_DELETE, id, user);
     } catch (error) {
       throw new InternalServerErrorException('Error soft-deleting entity');
     }

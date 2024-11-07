@@ -1,7 +1,7 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { IAppConfig } from 'src/config/config.interface';
+import { IAppConfig } from '@/config/config.interface';
 import { EmailProcessor } from './email.processor';
 import { EmailService } from './email.service';
 

@@ -1,6 +1,6 @@
 import { Controller } from '@nestjs/common';
-import { BaseController } from 'src/base/base.controller';
-import { Category } from 'src/database/schemas/category.schema';
+import { BaseController } from '@/base/base.controller';
+import { Category } from '@/database/schemas/category.schema';
 import { CategoryService } from './category.service';
 
 @Controller('category')

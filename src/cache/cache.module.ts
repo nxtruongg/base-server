@@ -2,7 +2,8 @@ import { CacheModule as NestCacheModule } from '@nestjs/cache-manager';
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CacheService } from './cache.service';
-import { IAppConfig } from 'src/config/config.interface';
+import { IAppConfig } from '@/config/config.interface';
+import { CACHE_STORE } from '@/common/constants';
 
 @Global()
 @Module({
@@ -12,7 +13,7 @@ import { IAppConfig } from 'src/config/config.interface';
       inject: [ConfigService],
       useFactory: async (configService: ConfigService<IAppConfig>) => {
         const cacheConfig = configService.get<IAppConfig['cache']>('cache');
-        if (cacheConfig.store === 'redis')
+        if (cacheConfig.store === CACHE_STORE.redis)
           return {
             store: '' as any,
             host: cacheConfig.redis.host,

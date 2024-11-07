@@ -1,6 +1,6 @@
 import { Controller } from '@nestjs/common';
-import { BaseController } from 'src/base/base.controller';
-import { Product } from 'src/database/schemas/product.schema';
+import { BaseController } from '@/base/base.controller';
+import { Product } from '@/database/schemas/product.schema';
 import { ProductService } from './product.service';
 
 @Controller('product')

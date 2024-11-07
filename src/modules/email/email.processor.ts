@@ -3,7 +3,7 @@ import { Job } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import { Injectable, Logger } from '@nestjs/common';
-import { IAppConfig } from 'src/config/config.interface';
+import { IAppConfig } from '@/config/config.interface';
 
 @Injectable()
 @Processor('email-queue')

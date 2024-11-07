@@ -1,11 +1,11 @@
-import { DynamicModule, Module } from '@nestjs/common';
+import { DynamicModule, Module, Global } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { existsSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
-import { EmployeeService } from './lists/employee/employee.service';
-import { ProductController } from './lists/product/product.controller';
-import { ProductService } from './lists/product/product.service';
+import { RouterModule } from '@nestjs/core';
 
+@Global()
+@Module({})
 export class DynamicLoaderModule {
   static async register(): Promise<DynamicModule> {
     const baseModulesPath = join(__dirname);
@@ -21,11 +21,11 @@ export class DynamicLoaderModule {
     const controllers = [];
     const providers = [];
     const mongooseSchemas = [];
+    const routes = [];
 
     for (const dir of targetDirectories) {
       const modulesPath = join(baseModulesPath, dir);
 
-      // Skip non-existent or non-directory paths
       if (!existsSync(modulesPath) || !statSync(modulesPath).isDirectory()) {
         continue;
       }
@@ -38,12 +38,10 @@ export class DynamicLoaderModule {
         const modulePath = join(modulesPath, subDir.name);
 
         try {
-          // Import controller, service, and schema if they exist
           const controllerPath = `${modulePath}/${subDir.name}.controller`;
           const servicePath = `${modulePath}/${subDir.name}.service`;
           const schemaPath = `${schemaRootPath}/${subDir.name}.schema`;
 
-          // Only attempt import if file exists
           if (
             existsSync(`${controllerPath}.js`) ||
             existsSync(`${controllerPath}.ts`)
@@ -53,6 +51,12 @@ export class DynamicLoaderModule {
               controllerModule[`${capitalize(subDir.name)}Controller`];
             if (controllerClass) {
               controllers.push(controllerClass);
+
+              routes.push({
+                path: dir === 'public' ? '/public' : '/api',
+                module: DynamicLoaderModule,
+                controllers: [controllerClass],
+              });
             }
           }
 
@@ -90,15 +94,17 @@ export class DynamicLoaderModule {
 
     return {
       module: DynamicLoaderModule,
-      imports: [MongooseModule.forFeature(mongooseSchemas)],
+      imports: [
+        MongooseModule.forFeature(mongooseSchemas),
+        RouterModule.register(routes),
+      ],
       controllers,
       providers,
-      exports: providers,
+      exports: providers.concat(MongooseModule),
     };
   }
 }
 
-// Helper function to capitalize the first letter
 function capitalize(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }

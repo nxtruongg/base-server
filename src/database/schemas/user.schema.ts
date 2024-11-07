@@ -1,5 +1,5 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-import { BaseDocument, CreateSchema } from 'src/base/base.schema';
+import { BaseDocument, CreateSchema } from '@/base/base.schema';
 
 @Schema()
 export class User extends BaseDocument {
@@ -11,6 +11,9 @@ export class User extends BaseDocument {
 
   @Prop({ required: true })
   passWord: string;
+
+  @Prop()
+  lastPasswordChange: Date;
 }
 
 export const UserSchema = CreateSchema(User);

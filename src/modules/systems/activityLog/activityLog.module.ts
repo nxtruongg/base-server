@@ -1,10 +1,10 @@
 import { Global, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { ActivityLogService } from './activityLog.service';
 import {
   ActivityLog,
   ActivityLogSchema,
-} from '../../../database/schemas/activityLog.schema';
-import { ActivityLogService } from './activityLog.service';
+} from '@/database/schemas/activityLog.schema';
 
 @Global()
 @Module({

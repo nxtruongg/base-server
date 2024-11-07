@@ -1,8 +1,8 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { BaseService } from 'src/base/base.service';
-import { Customer } from '../../../database/schemas/customer.schema';
+import { BaseService } from '@/base/base.service';
+import { Customer } from '@/database/schemas/customer.schema';
 
 @Injectable()
 export class CustomerService extends BaseService<Customer> {

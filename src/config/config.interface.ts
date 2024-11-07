@@ -1,6 +1,7 @@
 export interface IAppConfig {
   port: number;
   jwtSecret: string;
+  publicToken: string;
   database: {
     uri: string;
   };

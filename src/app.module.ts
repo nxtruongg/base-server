@@ -8,10 +8,11 @@ import configuration from './config/configuration';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DynamicLoaderModule } from './modules/dynamic-feature.module';
-import { UsersModule } from './modules/lists/user/user.module';
-import { CacheModule } from './cache/cache.module';
-import { EmailModule } from './modules/email/email.module';
+import { APP_GUARD } from '@nestjs/core';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { CacheModule } from './cache/cache.module';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { EmailModule } from './modules/email/email.module';
 
 @Module({
   imports: [
@@ -20,15 +21,20 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
       load: [configuration],
     }),
     DatabaseModule,
+    DynamicLoaderModule.register(),
+    AuthModule,
     CacheModule,
     EventEmitterModule.forRoot(),
     EmailModule,
-    AuthModule,
-    UsersModule,
-    DynamicLoaderModule.register(),
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
