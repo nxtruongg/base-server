@@ -218,7 +218,7 @@ export class BaseService<T> {
       await this.cacheService.setCached(cacheKey, entity);
       await this.logActivity(LogActionEnum.READ, id, user);
       const data = this.onView([entity], user);
-      return data[0] ? data[0] : data;
+      return data[0] ? data[0] : (data as T);
     } catch (error) {
       throw error;
     }

@@ -11,9 +11,9 @@ import { AuthGuard } from '@nestjs/passport';
 import { Model } from 'mongoose';
 import { IAppConfig } from '@/config/config.interface';
 import { User } from '@/database/schemas/user.schema';
-import { IUserRequest } from '../interfaces/user-request.interfaces';
-import { IS_PUBLIC_USER_ROUTE_KEY } from '../decorators/is-public-user-route.decorator';
-import { IS_PUBLIC_ROUTE_KEY } from '../decorators/is-public-route.decorator';
+import { IUserRequest } from '@/common/interfaces/user-request.interfaces';
+import { IS_PUBLIC_USER_ROUTE_KEY } from '@/common/decorators/is-public-user-route.decorator';
+import { IS_PUBLIC_ROUTE_KEY } from '@/common/decorators/is-public-route.decorator';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {

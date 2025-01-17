@@ -11,8 +11,9 @@ import { DynamicLoaderModule } from './modules/dynamic-feature.module';
 import { APP_GUARD } from '@nestjs/core';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CacheModule } from './cache/cache.module';
-import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/auth/jwt-auth.guard';
 import { EmailModule } from './modules/email/email.module';
+import { FileModule } from './modules/file/file.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { EmailModule } from './modules/email/email.module';
     CacheModule,
     EventEmitterModule.forRoot(),
     EmailModule,
+    FileModule,
   ],
   controllers: [AppController],
   providers: [

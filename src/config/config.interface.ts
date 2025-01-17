@@ -21,4 +21,6 @@ export interface IAppConfig {
     pass: string;
     secure: boolean;
   };
+  googleClientId: string;
+  googleClientSecret: string;
 }
