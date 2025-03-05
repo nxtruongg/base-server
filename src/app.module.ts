@@ -14,6 +14,7 @@ import { CacheModule } from './cache/cache.module';
 import { JwtAuthGuard } from '@/common/guards/auth/jwt-auth.guard';
 import { EmailModule } from './modules/email/email.module';
 import { FileModule } from './modules/file/file.module';
+import { EventsGateway } from './modules/events/events.gateway';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { FileModule } from './modules/file/file.module';
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
+    EventsGateway,
   ],
 })
 export class AppModule implements NestModule {

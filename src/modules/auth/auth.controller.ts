@@ -1,18 +1,9 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Post,
-  Req,
-  Res,
-  UseGuards,
-} from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
 import { IsPublicRoute } from '@/common/decorators/is-public-route.decorator';
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { GoogleAuthGuard } from '../../common/guards/auth/google-auth.guard';
-import { Response } from 'express';
+import { AuthService } from './auth.service';
+import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -31,9 +22,7 @@ export class AuthController {
   @IsPublicRoute()
   @Get('google')
   @UseGuards(GoogleAuthGuard)
-  async googleAuth(@Req() req) {
-    // Điều này sẽ được xử lý tự động bởi Passport
-  }
+  async googleAuth(@Req() req) {}
 
   @IsPublicRoute()
   @Get('google/callback')
